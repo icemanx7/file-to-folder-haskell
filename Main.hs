@@ -5,7 +5,7 @@ module Main where
 import System.Directory
 import System.FilePath.Posix
 
-basePath :: String
+-- basePath :: String
 basePath = "/tmp/Files"
 
 filePaths = listDirectory basePath
