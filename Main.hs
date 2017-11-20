@@ -2,8 +2,17 @@
 
 module Main where
 
+import Data.Maybe
 import System.Directory
 import System.FilePath.Posix
+
+rmdups
+  :: Eq a
+  => [a] -> [a]
+rmdups [] = []
+rmdups (x:xs)
+  | x `elem` xs = rmdups xs
+  | otherwise = x : rmdups xs
 
 basePath :: String
 basePath = "/tmp/Files"
@@ -32,7 +41,8 @@ bearFiles = do
   let base = getBase file
   let newDir = map mkDir base
   let old = map mkDir file
-  r <- createNewDir newDir
+  let newW = (rmdups newDir)
+  r <- createNewDir newW
   let final = getNewPath file newDir
   return (moveFiles old final)
 
