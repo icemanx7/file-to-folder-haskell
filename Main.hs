@@ -27,7 +27,7 @@ mkDir :: String -> String
 mkDir file = basePath ++ "/" ++ file
 
 getNewPath :: [FilePath] -> [String] -> [FilePath]
-getNewPath f b = map (\(x, y) -> replaceDirectory x y) $ zip f b
+getNewPath f b = zipWith replaceDirectory f b
 
 createNewDir :: [FilePath] -> IO [()]
 createNewDir a = mapM createDirectory a
