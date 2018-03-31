@@ -15,7 +15,7 @@ rmdups (x:xs)
   | otherwise = x : rmdups xs
 
 basePath :: String
-basePath = "/tmp/Files"
+basePath = "/run/media/icemanx7/Media/MoviesUnfiltered/"
 
 filePaths :: IO [FilePath]
 filePaths = listDirectory basePath
