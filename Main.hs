@@ -2,50 +2,70 @@
 
 module Main where
 
-import Data.Maybe
-import System.Directory
-import System.FilePath.Posix
+import Control.Monad (join)
+import Data.Maybe (listToMaybe)
+import System.Directory (
+  createDirectory,
+  listDirectory,
+  renameFile,
+ )
+import System.Environment (getArgs)
+import System.FilePath.Posix (replaceDirectory, takeBaseName)
+import Types (ArgResult (Error, Result), BasePathToName (BasePathToName))
 
-rmdups
-  :: Eq a
-  => [a] -> [a]
-rmdups [] = []
-rmdups (x:xs)
-  | x `elem` xs = rmdups xs
-  | otherwise = x : rmdups xs
+removeDuplicates ::
+  Eq a =>
+  [a] ->
+  [a]
+removeDuplicates [] = []
+removeDuplicates (x : xs)
+  | x `elem` xs = removeDuplicates xs
+  | otherwise = x : removeDuplicates xs
 
-basePath :: String
-basePath = "/run/media/icemanx7/Media/MoviesUnfiltered/"
+filePaths :: BasePathToName -> IO [FilePath]
+filePaths (BasePathToName path) = listDirectory path
 
-filePaths :: IO [FilePath]
-filePaths = listDirectory basePath
+getBaseDirectory :: [FilePath] -> [String]
+getBaseDirectory = map takeBaseName
 
-getBase :: [FilePath] -> [String]
-getBase files = map takeBaseName files
-
-mkDir :: String -> String
-mkDir file = basePath ++ "/" ++ file
+makeDirectory :: BasePathToName -> String -> String
+makeDirectory (BasePathToName basePath) file = basePath ++ "/" ++ file
 
 getNewPath :: [FilePath] -> [String] -> [FilePath]
-getNewPath f b = zipWith replaceDirectory f b
+getNewPath = zipWith replaceDirectory
 
-createNewDir :: [FilePath] -> IO [()]
-createNewDir a = mapM createDirectory a
+createNewDir :: [FilePath] -> IO ()
+createNewDir = mapM_ createDirectory
 
 moveFiles :: [FilePath] -> [FilePath] -> IO ()
-moveFiles f a = mapM_ (\(x, y) -> renameFile x y) $ zip f a
+moveFiles f a = mapM_ (uncurry renameFile) $ zip f a
 
-bearFiles :: IO (IO ())
-bearFiles = do
-  file <- filePaths
-  let base = getBase file
-  let newDir = map mkDir base
-  let old = map mkDir file
-  let newW = (rmdups newDir)
+handleInvalidArguments :: Maybe String -> ArgResult
+handleInvalidArguments m = case m of
+  Just str -> Result (BasePathToName str)
+  Nothing -> Error
+
+getSourceDirectory :: IO (Maybe String)
+getSourceDirectory = do
+  arg <- getArgs
+  let s = listToMaybe arg
+  pure s
+
+bearFiles :: ArgResult -> IO ()
+bearFiles (Result str) = do
+  file <- filePaths str
+  let mkDirF = makeDirectory str
+  let base = getBaseDirectory file
+  let newDir = map mkDirF base
+  let old = map mkDirF file
+  let newW = removeDuplicates newDir
   r <- createNewDir newW
   let final = getNewPath file newDir
-  return (moveFiles old final)
+  join return (moveFiles old final)
+bearFiles Error = putStrLn "Broken"
 
+main :: IO ()
 main = do
-  final <- bearFiles
-  final
+  src <- getSourceDirectory
+  let args = handleInvalidArguments src
+  bearFiles args

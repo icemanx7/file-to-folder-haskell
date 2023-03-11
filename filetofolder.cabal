@@ -8,4 +8,6 @@ build-type: Simple
 executable filefolder
     build-depends: base < 5, filepath , directory 
     main-is: Main.hs
+    other-modules: 
+       Types
     default-language: Haskell2010
